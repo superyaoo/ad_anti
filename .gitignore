@@ -1,0 +1,21 @@
+# macOS
+.DS_Store
+
+# 数据文件（不上传到 git）
+*.csv
+*.xlsx
+*.xls
+
+# Jupyter checkpoints
+.ipynb_checkpoints/
+*.ipynb
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# 模型文件
+*.model
+*.pkl
+*.bin

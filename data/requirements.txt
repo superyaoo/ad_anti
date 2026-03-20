@@ -1,0 +1,4 @@
+requests>=2.31.0
+pandas>=2.0.0
+openpyxl>=3.1.0
+clickhouse-driver>=0.2.6  # 可选：如果需要直连 ClickHouse
