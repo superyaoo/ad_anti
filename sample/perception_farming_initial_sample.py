@@ -154,6 +154,7 @@ combined AS (
   LEFT JOIN order_amt o ON s.visitor_id = o.visitor_id
 )
 
+SELECT * FROM (
 SELECT
   visitor_id,
   impr_cnt,
@@ -187,6 +188,7 @@ WHERE
   OR f_multi_small_order = 1
   OR f_low_roi = 1
   OR f_no_retention = 1
+) t
 """
 
 
