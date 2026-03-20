@@ -280,7 +280,7 @@ if __name__ == '__main__':
     white_cnt = len(white_df)
     print(f'[INFO] 白样本量={white_cnt}，实际黑白比=1:{round(white_cnt / black_cnt, 1)}')
 
-    # ── 3. 合并写表 + 导出 CSV ─────────────────────────────────
+    # ── 3. 合并写表 ────────────────────────────────────────────
     final_df = pd.concat([black_df, white_df], ignore_index=True)
     print(f'[INFO] Step3: 写表 {output_table} partition={partition_cols}，总量={len(final_df)}')
     hive.save_from_df(
@@ -290,9 +290,4 @@ if __name__ == '__main__':
         partition_cols=partition_cols,
         mode='overwrite'
     )
-
-    import os
-    csv_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), f'farming_initial_sample_{end_date}.csv')
-    final_df.to_csv(csv_path, index=False, encoding='utf-8')
-    print(f'[INFO] CSV 已保存: {csv_path}')
     print('[INFO] 完成！')
