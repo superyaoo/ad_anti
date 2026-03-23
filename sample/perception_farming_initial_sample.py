@@ -30,7 +30,7 @@ def get_date_range(end_date_str, days=3):
 
 
 def build_black_sample_sql(start_date, end_date):
-    return f"""
+    inner = f"""
 WITH
 
 shallow_ad AS (
@@ -190,6 +190,7 @@ WHERE
   OR f_no_retention = 1
 ) t
 """
+    return "SELECT * FROM (" + inner + ") _black_result"
 
 
 def build_white_sample_sql(start_date, end_date, white_limit):
