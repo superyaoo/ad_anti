@@ -49,43 +49,26 @@ SELECT
   COALESCE(la.live_ad_play_cnt, 0)                                      AS live_ad_play_cnt,
   COALESCE(la.live_non_ad_play_cnt, 0)                                  AS live_non_ad_play_cnt,
 
-  -- ── 视频观看基础特征 ──────────────────────────────────────────
+  -- ── 视频观看基础特征（play_duration列无权限，仅保留count/完播率类）──
   COALESCE(pa.photo_play_cnt_7d, 0)                                     AS photo_play_cnt_7d,
-  COALESCE(pa.photo_play_duration_7d, 0)                                AS photo_play_duration_7d,
   COALESCE(pa.photo_play_day_cnt_7d, 0)                                 AS photo_play_day_cnt_7d,
-  COALESCE(pa.avg_single_photo_duration, 0)                             AS avg_single_photo_duration,
   COALESCE(pa.ad_photo_cnt_7d, 0)                                       AS ad_photo_cnt_7d,
   COALESCE(pa.non_ad_photo_cnt_7d, 0)                                   AS non_ad_photo_cnt_7d,
   COALESCE(pa.ad_photo_ratio, 0)                                        AS ad_photo_ratio,
-  COALESCE(pa.ad_photo_duration, 0)                                     AS ad_photo_duration,
-  COALESCE(pa.non_ad_photo_duration, 0)                                 AS non_ad_photo_duration,
   COALESCE(pa.ad_complete_cnt, 0)                                       AS ad_complete_cnt,
   COALESCE(pa.non_ad_complete_cnt, 0)                                   AS non_ad_complete_cnt,
   COALESCE(pa.ad_complete_rate, 0)                                      AS ad_complete_rate,
   COALESCE(pa.non_ad_complete_rate, 0)                                  AS non_ad_complete_rate,
 
   -- ── 衍生特征 ────────────────────────────────────────────────
-  -- 广告/非广告完播率比值（养机广告完播率异常高）
   ROUND(COALESCE(pa.ad_complete_rate, 0)
         / NULLIF(COALESCE(pa.non_ad_complete_rate, 0), 0), 4)           AS ad_vs_non_complete_ratio,
-  -- 单日最大直播时长 / 平均单日直播时长（越高越异常集中）
   ROUND(COALESCE(dlm.daily_live_duration_max, 0)
         / NULLIF(COALESCE(la.live_play_duration_7d, 0)
                  / NULLIF(COALESCE(la.live_play_day_cnt_7d, 0), 0), 0), 4)
                                                                         AS daily_live_max_vs_avg_ratio,
-  -- 直播后台时长占比（后台挂机特征）
   ROUND(COALESCE(la.live_background_duration, 0)
-        / NULLIF(COALESCE(la.live_play_duration_7d, 0), 0), 4)          AS live_background_ratio_recalc,
-  -- 广告视频时长占总视频时长比
-  ROUND(COALESCE(pa.ad_photo_duration, 0)
-        / NULLIF(COALESCE(pa.photo_play_duration_7d, 0), 0), 4)         AS ad_photo_duration_ratio,
-  -- 总观播时长（直播+视频）
-  ROUND(COALESCE(la.live_play_duration_7d, 0)
-        + COALESCE(pa.photo_play_duration_7d, 0), 0)                    AS total_play_duration_7d,
-  -- 广告内容时长占总观播时长
-  ROUND((COALESCE(la.live_ad_play_duration, 0) + COALESCE(pa.ad_photo_duration, 0))
-        / NULLIF(COALESCE(la.live_play_duration_7d, 0)
-                 + COALESCE(pa.photo_play_duration_7d, 0), 0), 4)       AS total_ad_content_ratio
+        / NULLIF(COALESCE(la.live_play_duration_7d, 0), 0), 4)          AS live_background_ratio_recalc
 
 FROM (
   SELECT
@@ -119,17 +102,11 @@ FULL OUTER JOIN (
   SELECT
     user_id,
     COUNT(*)                                                            AS photo_play_cnt_7d,
-    ROUND(SUM(play_duration / 1000.0), 0)                               AS photo_play_duration_7d,
     COUNT(DISTINCT p_date)                                              AS photo_play_day_cnt_7d,
-    ROUND(AVG(play_duration / 1000.0), 0)                               AS avg_single_photo_duration,
     SUM(CASE WHEN is_ad_feed = 1 THEN 1 ELSE 0 END)                     AS ad_photo_cnt_7d,
     SUM(CASE WHEN is_ad_feed = 0 THEN 1 ELSE 0 END)                     AS non_ad_photo_cnt_7d,
     ROUND(SUM(CASE WHEN is_ad_feed = 1 THEN 1 ELSE 0 END) * 1.0
           / NULLIF(COUNT(*), 0), 4)                                     AS ad_photo_ratio,
-    ROUND(SUM(CASE WHEN is_ad_feed = 1 THEN play_duration / 1000.0 ELSE 0 END), 0)
-                                                                        AS ad_photo_duration,
-    ROUND(SUM(CASE WHEN is_ad_feed = 0 THEN play_duration / 1000.0 ELSE 0 END), 0)
-                                                                        AS non_ad_photo_duration,
     SUM(CASE WHEN is_ad_feed = 1 AND is_complete_play = 1 THEN 1 ELSE 0 END)
                                                                         AS ad_complete_cnt,
     SUM(CASE WHEN is_ad_feed = 0 AND is_complete_play = 1 THEN 1 ELSE 0 END)
@@ -143,7 +120,6 @@ FULL OUTER JOIN (
   FROM kscdm.dwd_ks_csm_play_photo_hi
   WHERE p_date >= '{start_date}' AND p_date <= '{end_date}'
     AND product IN ('KUAISHOU', 'NEBULA')
-    AND play_duration > 0
     AND user_id IN (
       SELECT CAST(visitor_id AS BIGINT)
       FROM {sample_table}
