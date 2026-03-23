@@ -27,6 +27,7 @@ import pandas as pd
 from kmlutils.kml_hive import Hive
 
 CSV_PATH = '圈差后效样本_Snippet 1_30113910.csv'
+SAMPLE_HIVE_TABLE = 'ks_ad_antispam_dev.ad_farming_feat_v1_sample_tmp'
 
 
 def get_date_range(end_date_str, days=7):
