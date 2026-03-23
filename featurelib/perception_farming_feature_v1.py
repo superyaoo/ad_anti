@@ -26,7 +26,7 @@ import datetime
 import pandas as pd
 from kmlutils.kml_hive import Hive
 
-CSV_PATH = '/Users/superyao/Downloads/圈差后效样本_Snippet 1_30113910.csv'
+CSV_PATH = None
 SAMPLE_HIVE_TABLE = 'ks_ad_antispam_dev.ad_farming_feat_v1_sample_tmp'
 
 
@@ -437,6 +437,13 @@ def main():
     except (IndexError, ValueError):
         p_date = (now - datetime.timedelta(days=1)).strftime('%Y%m%d')
 
+    try:
+        csv_path = sys.argv[2]
+    except IndexError:
+        print('[ERROR] 请传入 CSV 路径作为第二个参数，例如：')
+        print('  python perception_farming_feature_v1.py 20260309 /path/to/sample.csv')
+        sys.exit(1)
+
     start_date, end_date = get_date_range(p_date, days=7)
     cold_split_date = (datetime.datetime.strptime(end_date, '%Y%m%d') - datetime.timedelta(days=4)).strftime('%Y%m%d')
     print(f'[INFO] bizdate={p_date}, 7天窗口: {start_date} ~ {end_date}, cold_split={cold_split_date}')
@@ -444,7 +451,7 @@ def main():
     out_dir = os.path.dirname(os.path.abspath(__file__))
 
     print('[INFO] Step0: 读取 CSV，筛选 hit_score==6 的用户...')
-    raw_df = pd.read_csv(CSV_PATH)
+    raw_df = pd.read_csv(csv_path)
     sample_df = raw_df[raw_df['hit_score'] == 6][['s.visitor_id']].drop_duplicates()
     sample_df = sample_df.rename(columns={'s.visitor_id': 'visitor_id'})
     print(f'[INFO] 样本量: {len(sample_df)}')
