@@ -6,6 +6,7 @@
 
 WITH cost_per_uv AS (
     SELECT
+        1                                                                                                                       AS join_key,
         visitor_id,
         SUM(cost_total) / 1000.0                                                                                                AS total_cost_yuan,
         SUM(IF(is_for_report_engine = true,  cost_total, 0)) / 1000.0                                                          AS normal_cost_yuan,
@@ -24,6 +25,7 @@ WITH cost_per_uv AS (
 
 percentiles AS (
     SELECT
+        1                                                                                                                       AS join_key,
         percentile_approx(IF(total_cost_yuan       > 0, total_cost_yuan,       NULL), 0.05) AS total_p5,
         percentile_approx(IF(total_cost_yuan       > 0, total_cost_yuan,       NULL), 0.95) AS total_p95,
         percentile_approx(IF(normal_cost_yuan      > 0, normal_cost_yuan,      NULL), 0.05) AS normal_p5,
@@ -57,7 +59,7 @@ binned AS (
             WHEN total_cost_yuan <= p.total_p95                                                 THEN CONCAT('Bin09_(',ROUND(p.total_p5+7*(p.total_p95-p.total_p5)/8,2),',',ROUND(p.total_p95,2),']')
             ELSE                                                                                     CONCAT('Bin10_(',ROUND(p.total_p95,2), ',+inf)')
         END AS bin_label
-    FROM cost_per_uv CROSS JOIN percentiles p
+    FROM cost_per_uv JOIN percentiles p ON cost_per_uv.join_key = p.join_key
 
     UNION ALL
 
@@ -76,7 +78,7 @@ binned AS (
             WHEN normal_cost_yuan <= p.normal_p95                                               THEN CONCAT('Bin09_(',ROUND(p.normal_p5+7*(p.normal_p95-p.normal_p5)/8,2),',',ROUND(p.normal_p95,2),']')
             ELSE                                                                                     CONCAT('Bin10_(',ROUND(p.normal_p95,2), ',+inf)')
         END AS bin_label
-    FROM cost_per_uv CROSS JOIN percentiles p
+    FROM cost_per_uv JOIN percentiles p ON cost_per_uv.join_key = p.join_key
 
     UNION ALL
 
@@ -95,7 +97,7 @@ binned AS (
             WHEN spam_cost_yuan <= p.spam_p95                                                   THEN CONCAT('Bin09_(',ROUND(p.spam_p5+7*(p.spam_p95-p.spam_p5)/8,2),',',ROUND(p.spam_p95,2),']')
             ELSE                                                                                     CONCAT('Bin10_(',ROUND(p.spam_p95,2), ',+inf)')
         END AS bin_label
-    FROM cost_per_uv CROSS JOIN percentiles p
+    FROM cost_per_uv JOIN percentiles p ON cost_per_uv.join_key = p.join_key
 
     UNION ALL
 
@@ -114,7 +116,7 @@ binned AS (
             WHEN incycle_cost_yuan <= p.incycle_p95                                             THEN CONCAT('Bin09_(',ROUND(p.incycle_p5+7*(p.incycle_p95-p.incycle_p5)/8,2),',',ROUND(p.incycle_p95,2),']')
             ELSE                                                                                     CONCAT('Bin10_(',ROUND(p.incycle_p95,2), ',+inf)')
         END AS bin_label
-    FROM cost_per_uv CROSS JOIN percentiles p
+    FROM cost_per_uv JOIN percentiles p ON cost_per_uv.join_key = p.join_key
 
     UNION ALL
 
@@ -133,7 +135,7 @@ binned AS (
             WHEN excycle_cid_cost_yuan <= p.excycle_p95                                         THEN CONCAT('Bin09_(',ROUND(p.excycle_p5+7*(p.excycle_p95-p.excycle_p5)/8,2),',',ROUND(p.excycle_p95,2),']')
             ELSE                                                                                     CONCAT('Bin10_(',ROUND(p.excycle_p95,2), ',+inf)')
         END AS bin_label
-    FROM cost_per_uv CROSS JOIN percentiles p
+    FROM cost_per_uv JOIN percentiles p ON cost_per_uv.join_key = p.join_key
 
     UNION ALL
 
@@ -152,7 +154,7 @@ binned AS (
             WHEN clue_cost_yuan <= p.clue_p95                                                   THEN CONCAT('Bin09_(',ROUND(p.clue_p5+7*(p.clue_p95-p.clue_p5)/8,2),',',ROUND(p.clue_p95,2),']')
             ELSE                                                                                     CONCAT('Bin10_(',ROUND(p.clue_p95,2), ',+inf)')
         END AS bin_label
-    FROM cost_per_uv CROSS JOIN percentiles p
+    FROM cost_per_uv JOIN percentiles p ON cost_per_uv.join_key = p.join_key
 
     UNION ALL
 
@@ -171,7 +173,7 @@ binned AS (
             WHEN download_cost_yuan <= p.download_p95                                           THEN CONCAT('Bin09_(',ROUND(p.download_p5+7*(p.download_p95-p.download_p5)/8,2),',',ROUND(p.download_p95,2),']')
             ELSE                                                                                     CONCAT('Bin10_(',ROUND(p.download_p95,2), ',+inf)')
         END AS bin_label
-    FROM cost_per_uv CROSS JOIN percentiles p
+    FROM cost_per_uv JOIN percentiles p ON cost_per_uv.join_key = p.join_key
 )
 
 SELECT
