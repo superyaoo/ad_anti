@@ -19,7 +19,6 @@ WITH cost_per_uv AS (
     WHERE p_date = '20250101'
       AND is_duplicate = false
       AND is_retry = false
-      AND action_type = charge_action_type
     GROUP BY visitor_id
 ),
 
