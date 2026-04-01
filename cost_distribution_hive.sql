@@ -1,7 +1,8 @@
 -- ============================================================
 -- 后效大盘分布分析 —— 消耗类（Hive 版）
+-- 数据来源：ks_ad_antispam.ks_anticheat_small_log_hi（全链路）
+-- 过滤条件：action_type = charge_action_type 取计费行
 -- 分箱策略：Bin1=(0,p5] | Bin2~9=p5~p95等距8箱 | Bin10=(p95,+∞)
--- 修改 p_date 后直接在 Hive 执行
 -- ============================================================
 
 WITH cost_per_uv AS (
@@ -15,10 +16,11 @@ WITH cost_per_uv AS (
         SUM(IF(ocpc_action_type IN ('EVENT_ORDER_SUBMIT','AD_CID_ROAS','CID_ROAS','CID_EVENT_ORDER_PAID'),                                       cost_total, 0)) / 1000.0 AS excycle_cid_cost_yuan,
         SUM(IF(ocpc_action_type IN ('AD_LANDING_PAGE_FORM_SUBMITTED','EVENT_VALID_CLUES','AD_EFFECTIVE_CUSTOMER_ACQUISITION','EVENT_INTENTION_CONFIRMED','LEADS_SUBMIT','EVENT_PHONE_GET_THROUGH'), cost_total, 0)) / 1000.0 AS clue_cost_yuan,
         SUM(IF(ocpc_action_type IN ('AD_CONVERSION','AD_PURCHASE','AD_PURCHASE_CONVERSION','AD_ROAS','AD_SEVEN_DAY_ROAS','AD_ITEM_DOWNLOAD_COMPLETED','AD_ITEM_CLICK_DOWNLOAD'),                   cost_total, 0)) / 1000.0 AS download_cost_yuan
-    FROM ks_origin_ad_log.ad_callback_log_from_ad_log_full
+    FROM ks_ad_antispam.ks_anticheat_small_log_hi
     WHERE p_date = '20250101'
       AND is_duplicate = false
       AND is_retry = false
+      AND action_type = charge_action_type
     GROUP BY visitor_id
 ),
 
