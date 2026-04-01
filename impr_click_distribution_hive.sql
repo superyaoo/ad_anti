@@ -8,17 +8,17 @@ WITH uv_metrics AS (
     SELECT
         1                                                                                    AS join_key,
         visitor_id,
-        COUNT(DISTINCT llsid)                                                                AS req_cnt,
-        COUNT(DISTINCT IF(action_type IN ('AD_ITEM_IMPRESSION','AD_PHOTO_IMPRESSION','AD_LIVE_IMPRESSION','AD_LIVE_PLAYED_STARTED'),
-                         CONCAT(llsid, creative_id, unit_id), NULL))                        AS impr_cnt,
-        COUNT(DISTINCT IF(is_for_report_engine = false
+        CAST(COUNT(DISTINCT llsid) AS DOUBLE)                                                                AS req_cnt,
+        CAST(COUNT(DISTINCT IF(action_type IN ('AD_ITEM_IMPRESSION','AD_PHOTO_IMPRESSION','AD_LIVE_IMPRESSION','AD_LIVE_PLAYED_STARTED'),
+                         CONCAT(llsid, creative_id, unit_id), NULL)) AS DOUBLE)                             AS impr_cnt,
+        CAST(COUNT(DISTINCT IF(is_for_report_engine = false
                          AND action_type IN ('AD_ITEM_IMPRESSION','AD_PHOTO_IMPRESSION','AD_LIVE_IMPRESSION','AD_LIVE_PLAYED_STARTED'),
-                         CONCAT(llsid, creative_id, unit_id), NULL))                        AS spam_impr_cnt,
-        COUNT(DISTINCT IF(action_type IN ('AD_ITEM_CLICK','AD_LIVE_CLICK','AD_PHOTO_CLICK'),
-                         CONCAT(llsid, creative_id, unit_id), NULL))                        AS click_cnt,
-        COUNT(DISTINCT IF(is_for_report_engine = false
+                         CONCAT(llsid, creative_id, unit_id), NULL)) AS DOUBLE)                             AS spam_impr_cnt,
+        CAST(COUNT(DISTINCT IF(action_type IN ('AD_ITEM_CLICK','AD_LIVE_CLICK','AD_PHOTO_CLICK'),
+                         CONCAT(llsid, creative_id, unit_id), NULL)) AS DOUBLE)                             AS click_cnt,
+        CAST(COUNT(DISTINCT IF(is_for_report_engine = false
                          AND action_type IN ('AD_ITEM_CLICK','AD_LIVE_CLICK','AD_PHOTO_CLICK'),
-                         CONCAT(llsid, creative_id, unit_id), NULL))                        AS spam_click_cnt,
+                         CONCAT(llsid, creative_id, unit_id), NULL)) AS DOUBLE)                             AS spam_click_cnt,
         CASE WHEN COUNT(DISTINCT llsid) = 0 THEN 0
              ELSE COUNT(DISTINCT IF(action_type IN ('AD_ITEM_IMPRESSION','AD_PHOTO_IMPRESSION','AD_LIVE_IMPRESSION','AD_LIVE_PLAYED_STARTED'),
                                    CONCAT(llsid, creative_id, unit_id), NULL)) * 1.0
