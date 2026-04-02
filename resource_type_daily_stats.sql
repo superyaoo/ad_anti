@@ -31,6 +31,36 @@ ORDER BY resource_type
 
 
 -- ============================================================
+-- 5. callback_log 线索后效（表单提交/有效线索/成交）
+--    来源：ks_origin_ad_log.ad_callback_log_from_ad_log_full
+--    注：action_type枚举值待验证（宽表与callback明细表可能有差异）
+-- ============================================================
+SELECT
+    resource_type,
+    COUNT(DISTINCT visitor_id)                                                                             AS uv,
+    SUM(CASE WHEN action_type IN ('AD_LANDING_PAGE_FORM_SUBMITTED','EVENT_FORM_SUBMIT','EVENT_JS3')
+             THEN 1 ELSE 0 END)                                                                            AS form_submit_cnt,
+    SUM(CASE WHEN action_type = 'EVENT_VALID_CLUES'    THEN 1 ELSE 0 END)                                  AS valid_clues_cnt,
+    SUM(CASE WHEN action_type = 'EVENT_ORDER_SUCCESSED' THEN 1 ELSE 0 END)                                 AS order_successed_cnt,
+    SUM(e_ad_item_click)                                                                                   AS click_cnt,
+    ROUND(
+        SUM(CASE WHEN action_type = 'EVENT_VALID_CLUES' THEN 1 ELSE 0 END)
+        / NULLIF(SUM(e_ad_item_click), 0)
+    , 4)                                                                                                   AS clue_cvr,
+    ROUND(
+        SUM(CASE WHEN action_type = 'EVENT_ORDER_SUCCESSED' THEN 1 ELSE 0 END)
+        / NULLIF(SUM(CASE WHEN action_type = 'EVENT_VALID_CLUES' THEN 1 ELSE 0 END), 0)
+    , 4)                                                                                                   AS clue_to_order_ratio
+FROM ks_origin_ad_log.ad_callback_log_from_ad_log_full
+WHERE p_date = '20260401'
+  AND is_duplicate = false
+  AND is_retry = false
+GROUP BY resource_type
+ORDER BY resource_type
+;
+
+
+-- ============================================================
 -- 2. 转化类后效
 --    来源：ks_origin_ad_log.ad_callback_log_from_ad_log_full
 -- ============================================================
