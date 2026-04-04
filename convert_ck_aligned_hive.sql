@@ -5,10 +5,17 @@
 -- 日期：20260403（对应CK的 2026-04-03）
 -- JOIN维度：visitor_id
 -- ============================================================
+-- CK字段映射：
+--   conversion_num           ← SUM(e_event_conversion)        [0/1标记位]
+--   old_deep_conversion_num  ← SUM(is_deep_conversion=true)
+--   event_pay                ← SUM(callback_purchase_amount)
+--   event_conversion（_5/_6分母） ← SUM(e_event_conversion)   [SIMPLEAGGREGATEFUNCTION(SUM,INT64)确认]
+--   ad_item_click            ← smalllog SUM(e_ad_item_click)
+--   ad_item_impression       ← smalllog COUNT(DISTINCT llsid)
+-- ============================================================
 
 WITH
 
--- 曝光/点击/消耗：来自 smalllog，正常流量
 impr_click AS (
     SELECT
         visitor_id,
@@ -22,14 +29,13 @@ impr_click AS (
     GROUP BY visitor_id
 ),
 
--- 转化/支付：来自 callback_log
 convert_info AS (
     SELECT
         visitor_id,
-        SUM(CASE WHEN is_conversion      = true THEN 1 ELSE 0 END)                AS conversion_num,
+        SUM(e_event_conversion)                                                    AS conversion_num,
         SUM(CASE WHEN is_deep_conversion = true THEN 1 ELSE 0 END)                AS deep_conversion_num,
         SUM(callback_purchase_amount)                                              AS event_pay,
-        COUNT(DISTINCT IF(action_type = 'EVENT_PAY', llsid, NULL))                AS event_conversion
+        SUM(e_event_conversion)                                                    AS event_conversion
     FROM ks_origin_ad_log.ad_callback_log_from_ad_log_full
     WHERE p_date = '20260403'
       AND is_duplicate = false
@@ -37,7 +43,6 @@ convert_info AS (
     GROUP BY visitor_id
 ),
 
--- 按 visitor_id JOIN，保留所有有曝光或有转化的用户
 joined AS (
     SELECT
         COALESCE(i.visitor_id, c.visitor_id) AS visitor_id,
@@ -53,34 +58,20 @@ joined AS (
 )
 
 SELECT
-    '20260403'                                                                         AS dt,
+    '20260403'                                                                     AS dt,
 
-    -- 消耗（元）
-    ROUND(SUM(cost), 4)                                                                AS cost,
+    ROUND(SUM(cost), 4)                                                            AS cost,
+    SUM(conversion_num)                                                            AS conversion_num,
+    SUM(deep_conversion_num)                                                       AS deep_conversion_num,
+    SUM(event_pay)                                                                 AS event_pay,
+    SUM(event_conversion)                                                          AS event_conversion,
 
-    -- 浅度转化数（对应 CK _4）
-    SUM(conversion_num)                                                                AS conversion_num,
-
-    -- 深度转化数（对应 CK _3）
-    SUM(deep_conversion_num)                                                           AS deep_conversion_num,
-
-    -- 浅度CVR = 转化数 / 点击数（对应 CK _2）
-    ROUND(SUM(conversion_num) / NULLIF(SUM(click_cnt), 0), 6)                         AS shallow_cvr,
-
-    -- 深浅比 = 深度转化数 / 浅度转化数（对应 CK _7）
-    ROUND(SUM(deep_conversion_num) / NULLIF(SUM(conversion_num), 0), 4)               AS deep_shallow_ratio,
-
-    -- 次均支付金额 = event_pay / event_conversion（对应 CK _5）
-    ROUND(SUM(event_pay) / NULLIF(SUM(event_conversion), 0), 4)                       AS avg_pay_per_conversion,
-
-    -- 支付转化率 = event_conversion / 曝光数（对应 CK _6）
-    ROUND(SUM(event_conversion) / NULLIF(SUM(impr_cnt), 0), 6)                        AS pay_conversion_rate,
-
-    -- 附加：深度CVR = 深度转化数 / 点击数
-    ROUND(SUM(deep_conversion_num) / NULLIF(SUM(click_cnt), 0), 6)                    AS deep_cvr,
-
-    -- 附加：ROI = 支付金额 / 消耗
-    ROUND(SUM(event_pay) / NULLIF(SUM(cost), 0), 4)                                   AS roi
+    ROUND(SUM(conversion_num)      / NULLIF(SUM(click_cnt),        0), 6)         AS shallow_cvr,
+    ROUND(SUM(deep_conversion_num) / NULLIF(SUM(conversion_num),   0), 4)         AS deep_shallow_ratio,
+    ROUND(SUM(event_pay)           / NULLIF(SUM(event_conversion),  0), 4)        AS avg_pay_per_conversion,
+    ROUND(SUM(event_conversion)    / NULLIF(SUM(impr_cnt),          0), 6)        AS pay_conversion_rate,
+    ROUND(SUM(deep_conversion_num) / NULLIF(SUM(click_cnt),         0), 6)        AS deep_cvr,
+    ROUND(SUM(event_pay)           / NULLIF(SUM(cost),              0), 4)        AS roi
 
 FROM joined
 ;
