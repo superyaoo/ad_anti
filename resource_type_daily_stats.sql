@@ -61,25 +61,21 @@ ORDER BY resource_type
 
 
 -- ============================================================
--- 2. 转化类后效
+-- 2. 转化类后效（仅纯转化指标，曝光/点击在callback_log不全，已移除）
 --    来源：ks_origin_ad_log.ad_callback_log_from_ad_log_full
 -- ============================================================
 SELECT
     resource_type,
     COUNT(DISTINCT visitor_id)                                                                             AS uv,
-    COUNT(DISTINCT llsid)                                                                                  AS impr_cnt,
-    SUM(e_ad_item_click)                                                                                   AS click_cnt,
     SUM(CASE WHEN is_conversion      = true THEN 1 ELSE 0 END)                                             AS convert_num,
     SUM(CASE WHEN is_deep_conversion = true THEN 1 ELSE 0 END)                                             AS deep_convert_num,
-    SUM(CASE WHEN action_type = charge_action_type THEN cost_total ELSE 0 END) / 1000.0                    AS cost,
-    ROUND(SUM(CASE WHEN is_conversion = true THEN 1 ELSE 0 END)
-        / NULLIF(SUM(e_ad_item_click), 0), 4)                                                              AS shallow_cvr,
-    ROUND(SUM(CASE WHEN is_deep_conversion = true THEN 1 ELSE 0 END)
-        / NULLIF(SUM(e_ad_item_click), 0), 4)                                                              AS deep_cvr,
+    SUM(callback_purchase_amount)                                                                          AS event_pay,
     ROUND(SUM(CASE WHEN is_deep_conversion = true THEN 1 ELSE 0 END)
         / NULLIF(SUM(CASE WHEN is_conversion = true THEN 1 ELSE 0 END), 0), 4)                             AS deep_shallow_ratio,
-    ROUND(SUM(CASE WHEN is_conversion = true THEN 1 ELSE 0 END)
-        / NULLIF(COUNT(DISTINCT llsid), 0), 4)                                                             AS impression_cvr
+    ROUND(SUM(callback_purchase_amount)
+        / NULLIF(SUM(CASE WHEN is_conversion = true THEN 1 ELSE 0 END), 0), 4)                             AS shallow_pay_roi,
+    ROUND(SUM(callback_purchase_amount)
+        / NULLIF(SUM(CASE WHEN is_deep_conversion = true THEN 1 ELSE 0 END), 0), 4)                        AS deep_pay_roi
 FROM ks_origin_ad_log.ad_callback_log_from_ad_log_full
 WHERE p_date = '20260401'
   AND is_duplicate = false
